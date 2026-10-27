@@ -1,0 +1,33 @@
+{
+  "name": "sigac_gateway",
+  "version": "1.0.0",
+  "description": "Backend para la aplicacion del Sistema Integrado de Gestion del Archivo Central",
+  "homepage": "https://github.com/tincho15/sigac_gateway#readme",
+  "bugs": {
+    "url": "https://github.com/tincho15/sigac_gateway/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tincho15/sigac_gateway.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "prisma:generate": "prisma generate"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.0"
+  }
+}
