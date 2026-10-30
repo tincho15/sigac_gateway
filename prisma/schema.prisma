@@ -6,3 +6,282 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ---------------------------------------------------------------------------
+// Catalogos
+// ---------------------------------------------------------------------------
+
+model Rol {
+  id_rol      Int     @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(50)
+  descripcion String? @db.VarChar(255)
+
+  usuarios Usuario[]
+
+  @@map("rol")
+}
+
+model TipoSolicitud {
+  id_tipo     Int     @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(50)
+  descripcion String? @db.VarChar(255)
+
+  solicitudes Solicitud[]
+
+  @@map("tipo_solicitud")
+}
+
+model Estado {
+  id_estado Int    @id @default(autoincrement())
+  nombre    String @unique @db.VarChar(50)
+
+  solicitudes            Solicitud[]
+  solicitudesExpedientes SolicitudExpediente[]
+  historialesExpediente  HistorialExpediente[]
+
+  @@map("estado")
+}
+
+// ---------------------------------------------------------------------------
+// Usuarios
+// ---------------------------------------------------------------------------
+
+model Usuario {
+  id_usuario Int     @id @default(autoincrement())
+  id_rol     Int
+  nombre     String  @db.VarChar(100)
+  email      String  @unique @db.VarChar(150)
+  password   String  @db.VarChar(255)
+  activo     Boolean @default(true)
+
+  rol                    Rol                   @relation(fields: [id_rol], references: [id_rol])
+  solicitudes            Solicitud[]
+  documentos             Documento[]
+  historialesSolicitud   HistorialSolicitud[]
+  historialesExpediente  HistorialExpediente[]
+  transferencias         Transferencia[]
+  asignacionesRecibidas  Asignacion[]          @relation("AsignacionAsignado")
+  asignacionesRealizadas Asignacion[]          @relation("AsignacionAsignador")
+
+  @@index([id_rol])
+  @@map("usuario")
+}
+
+// ---------------------------------------------------------------------------
+// Juzgados, ubicaciones y expedientes
+// ---------------------------------------------------------------------------
+
+model Juzgado {
+  id_juzgado Int    @id @default(autoincrement())
+  numero     String @db.VarChar(20)
+  nombre     String @db.VarChar(150)
+
+  ubicaciones    Ubicacion[]
+  expedientes    Expediente[]
+  transferencias Transferencia[]
+
+  @@map("juzgado")
+}
+
+model Ubicacion {
+  id_ubicacion   Int    @id @default(autoincrement())
+  piso           String @db.VarChar(20)
+  nro_estanteria String @db.VarChar(20)
+  anio           String @db.VarChar(10)
+  id_juzgado     Int
+
+  juzgado     Juzgado      @relation(fields: [id_juzgado], references: [id_juzgado])
+  expedientes Expediente[]
+
+  @@index([id_juzgado])
+  @@map("ubicacion")
+}
+
+model Expediente {
+  id_expediente Int     @id @default(autoincrement())
+  iue           String  @unique @db.VarChar(50)
+  numero        String? @db.VarChar(50)
+  ficha         String? @db.VarChar(50)
+  nro_archivo   String? @db.VarChar(50)
+  id_juzgado    Int
+  id_ubicacion  Int?
+
+  juzgado                  Juzgado                   @relation(fields: [id_juzgado], references: [id_juzgado])
+  ubicacion                Ubicacion?                @relation(fields: [id_ubicacion], references: [id_ubicacion])
+  solicitudesExpedientes   SolicitudExpediente[]
+  transferenciasExpediente TransferenciaExpediente[]
+
+  @@index([id_juzgado])
+  @@index([id_ubicacion])
+  @@map("expediente")
+}
+
+// ---------------------------------------------------------------------------
+// Solicitudes
+// ---------------------------------------------------------------------------
+
+model EmailRecibido {
+  id_email             Int      @id @default(autoincrement())
+  // Identificador del mensaje en el proveedor de correo (Message-ID / id de Gmail o Graph)
+  id_externo           String   @unique @db.VarChar(255)
+  remitente            String   @db.VarChar(255)
+  asunto               String?  @db.VarChar(500)
+  fecha_recepcion      DateTime
+  estado_procesamiento String   @db.VarChar(50)
+
+  solicitud Solicitud?
+
+  @@map("email_recibido")
+}
+
+model Solicitud {
+  id_solicitud  Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  origen        String   @db.VarChar(50)
+  observaciones String?  @db.Text
+  id_usuario    Int?
+  id_tipo       Int
+  id_estado     Int
+  id_email      Int?     @unique
+
+  usuario                Usuario?              @relation(fields: [id_usuario], references: [id_usuario])
+  tipo                   TipoSolicitud         @relation(fields: [id_tipo], references: [id_tipo])
+  estado                 Estado                @relation(fields: [id_estado], references: [id_estado])
+  email                  EmailRecibido?        @relation(fields: [id_email], references: [id_email])
+  documentos             Documento[]
+  historiales            HistorialSolicitud[]
+  solicitudesExpedientes SolicitudExpediente[]
+
+  @@index([id_usuario])
+  @@index([id_tipo])
+  @@index([id_estado])
+  @@map("solicitud")
+}
+
+model Documento {
+  id_documento        Int      @id @default(autoincrement())
+  tipo_documento      String   @db.VarChar(50)
+  datos_extraidos     String?  @db.Text
+  confianza_ocr       String?  @db.VarChar(20)
+  fecha_procesamiento DateTime @default(now())
+  id_solicitud        Int
+  id_usuario          Int?
+
+  solicitud Solicitud @relation(fields: [id_solicitud], references: [id_solicitud])
+  usuario   Usuario?  @relation(fields: [id_usuario], references: [id_usuario])
+
+  @@index([id_solicitud])
+  @@index([id_usuario])
+  @@map("documento")
+}
+
+model HistorialSolicitud {
+  id_historial Int      @id @default(autoincrement())
+  fecha        DateTime @default(now())
+  accion       String   @db.VarChar(100)
+  detalle      String?  @db.Text
+  id_solicitud Int
+  id_usuario   Int
+
+  solicitud Solicitud @relation(fields: [id_solicitud], references: [id_solicitud])
+  usuario   Usuario   @relation(fields: [id_usuario], references: [id_usuario])
+
+  @@index([id_solicitud])
+  @@index([id_usuario])
+  @@map("historial_solicitud")
+}
+
+model SolicitudExpediente {
+  id_solicitud  Int
+  id_expediente Int
+  id_estado     Int
+  observaciones String?   @db.Text
+  fecha_inicio  DateTime  @default(now())
+  fecha_fin     DateTime?
+
+  solicitud    Solicitud             @relation(fields: [id_solicitud], references: [id_solicitud])
+  expediente   Expediente            @relation(fields: [id_expediente], references: [id_expediente])
+  estado       Estado                @relation(fields: [id_estado], references: [id_estado])
+  asignaciones Asignacion[]
+  historiales  HistorialExpediente[]
+
+  @@id([id_solicitud, id_expediente])
+  @@index([id_expediente])
+  @@index([id_estado])
+  @@map("solicitud_expediente")
+}
+
+model Asignacion {
+  id_asignacion    Int       @id @default(autoincrement())
+  fecha_asignacion DateTime  @default(now())
+  fecha_fin        DateTime?
+  id_solicitud     Int
+  id_expediente    Int
+  // Usuario que recibe la asignacion
+  id_asignado      Int
+  // Usuario que realiza la asignacion
+  id_asignador     Int
+
+  solicitudExpediente SolicitudExpediente @relation(fields: [id_solicitud, id_expediente], references: [id_solicitud, id_expediente])
+  asignado            Usuario             @relation("AsignacionAsignado", fields: [id_asignado], references: [id_usuario])
+  asignador           Usuario             @relation("AsignacionAsignador", fields: [id_asignador], references: [id_usuario])
+
+  @@index([id_solicitud, id_expediente])
+  @@index([id_asignado])
+  @@index([id_asignador])
+  @@map("asignacion")
+}
+
+model HistorialExpediente {
+  id_historial  Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  accion        String   @db.VarChar(100)
+  detalle       String?  @db.Text
+  id_solicitud  Int
+  id_expediente Int
+  id_estado     Int
+  id_usuario    Int
+
+  solicitudExpediente SolicitudExpediente @relation(fields: [id_solicitud, id_expediente], references: [id_solicitud, id_expediente])
+  estado              Estado              @relation(fields: [id_estado], references: [id_estado])
+  usuario             Usuario             @relation(fields: [id_usuario], references: [id_usuario])
+
+  @@index([id_solicitud, id_expediente])
+  @@index([id_estado])
+  @@index([id_usuario])
+  @@map("historial_expediente")
+}
+
+// ---------------------------------------------------------------------------
+// Transferencias
+// ---------------------------------------------------------------------------
+
+model Transferencia {
+  id_transferencia Int      @id @default(autoincrement())
+  fecha            DateTime @default(now())
+  usuario_receptor String   @db.VarChar(150)
+  observaciones    String?  @db.Text
+  id_juzgado       Int
+  id_usuario       Int
+
+  juzgado     Juzgado                   @relation(fields: [id_juzgado], references: [id_juzgado])
+  usuario     Usuario                   @relation(fields: [id_usuario], references: [id_usuario])
+  expedientes TransferenciaExpediente[]
+
+  @@index([id_juzgado])
+  @@index([id_usuario])
+  @@map("transferencia")
+}
+
+model TransferenciaExpediente {
+  id_transferencia Int
+  id_expediente    Int
+  observaciones    String? @db.Text
+
+  transferencia Transferencia @relation(fields: [id_transferencia], references: [id_transferencia])
+  expediente    Expediente    @relation(fields: [id_expediente], references: [id_expediente])
+
+  @@id([id_transferencia, id_expediente])
+  @@index([id_expediente])
+  @@map("transferencia_expediente")
+}
