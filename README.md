@@ -8,9 +8,11 @@ Backend inicial con Express.js y Prisma para PostgreSQL.
 src/
   config/          Configuracion compartida (Prisma)
   controllers/     Manejo de solicitudes HTTP
+  errors/          Errores de dominio
   repositories/    Acceso a datos
   routes/          Definicion de rutas
   services/        Logica de aplicacion
+  validators/      Validacion de datos de entrada
   app.js           Configuracion de Express
   server.js        Inicio y cierre del servidor
 ```
@@ -68,6 +70,7 @@ El modelo esta en `prisma/schema.prisma` y las migraciones versionadas en `prism
 
 Al cambiar el schema, ejecutar `npm run db:migrate -- --name descripcion_del_cambio` y commitear la carpeta generada en `prisma/migrations`. Los demas aplican el cambio con `npm run db:setup`.
 
-## Endpoint
+## Endpoints
 
 - `GET /health`: comprueba que el servidor responde y que Prisma puede consultar la base de datos. Devuelve `200` si esta conectada y `503` si no lo esta.
+- `POST /users`: crea un usuario a partir de `email`, `nombre` e `id_rol`. Devuelve `201` con los datos del usuario y la contraseña generada, `400` si los datos son invalidos o el rol no existe y `409` si el email ya esta registrado. La contraseña se guarda hasheada con bcrypt, por lo que esta respuesta es la unica vez que puede verse en claro.
