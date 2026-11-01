@@ -99,7 +99,7 @@ model Ubicacion {
 
 model Expediente {
   id_expediente Int     @id @default(autoincrement())
-  iue           String  @unique @db.VarChar(50)
+  iue           String? @unique @db.VarChar(50)
   numero        String? @db.VarChar(50)
   ficha         String? @db.VarChar(50)
   nro_archivo   String? @db.VarChar(50)
@@ -151,6 +151,7 @@ model Solicitud {
   documentos             Documento[]
   historiales            HistorialSolicitud[]
   solicitudesExpedientes SolicitudExpediente[]
+  asignaciones           Asignacion[]
 
   @@index([id_usuario])
   @@index([id_tipo])
@@ -199,11 +200,10 @@ model SolicitudExpediente {
   fecha_inicio  DateTime  @default(now())
   fecha_fin     DateTime?
 
-  solicitud    Solicitud             @relation(fields: [id_solicitud], references: [id_solicitud])
-  expediente   Expediente            @relation(fields: [id_expediente], references: [id_expediente])
-  estado       Estado                @relation(fields: [id_estado], references: [id_estado])
-  asignaciones Asignacion[]
-  historiales  HistorialExpediente[]
+  solicitud   Solicitud             @relation(fields: [id_solicitud], references: [id_solicitud])
+  expediente  Expediente            @relation(fields: [id_expediente], references: [id_expediente])
+  estado      Estado                @relation(fields: [id_estado], references: [id_estado])
+  historiales HistorialExpediente[]
 
   @@id([id_solicitud, id_expediente])
   @@index([id_expediente])
@@ -216,17 +216,16 @@ model Asignacion {
   fecha_asignacion DateTime  @default(now())
   fecha_fin        DateTime?
   id_solicitud     Int
-  id_expediente    Int
   // Usuario que recibe la asignacion
   id_asignado      Int
   // Usuario que realiza la asignacion
   id_asignador     Int
 
-  solicitudExpediente SolicitudExpediente @relation(fields: [id_solicitud, id_expediente], references: [id_solicitud, id_expediente])
-  asignado            Usuario             @relation("AsignacionAsignado", fields: [id_asignado], references: [id_usuario])
-  asignador           Usuario             @relation("AsignacionAsignador", fields: [id_asignador], references: [id_usuario])
+  solicitud Solicitud @relation(fields: [id_solicitud], references: [id_solicitud])
+  asignado  Usuario   @relation("AsignacionAsignado", fields: [id_asignado], references: [id_usuario])
+  asignador Usuario   @relation("AsignacionAsignador", fields: [id_asignador], references: [id_usuario])
 
-  @@index([id_solicitud, id_expediente])
+  @@index([id_solicitud])
   @@index([id_asignado])
   @@index([id_asignador])
   @@map("asignacion")
