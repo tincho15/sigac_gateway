@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sigac_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sigac}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sigac}
+      POSTGRES_DB: ${POSTGRES_DB:-sigac}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - sigac_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sigac_db_data:
