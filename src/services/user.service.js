@@ -32,6 +32,7 @@ async function listUsers() {
     id_usuario: user.id_usuario,
     nombre: user.nombre,
     email: user.email,
+    activo: user.activo,
     rol: user.rol.nombre,
   }));
 }
