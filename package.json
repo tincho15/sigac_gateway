@@ -25,7 +25,10 @@
     "db:seed": "prisma db seed",
     "db:setup": "prisma migrate deploy && prisma db seed",
     "db:reset": "prisma migrate reset",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "docker:build": "docker build -t sigac-back .",
+    "docker:start": "docker run -d --rm --name sigac-back -p 3001:3000 --env-file .env sigac-back",
+    "docker:stop": "docker stop sigac-back"
   },
   "engines": {
     "node": ">=20"
