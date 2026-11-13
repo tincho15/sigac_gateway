@@ -36,6 +36,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-sigac_user}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-sigac}
       PORT: 3000
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
 
 volumes:
   sigac_db_data:
