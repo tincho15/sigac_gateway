@@ -3,21 +3,28 @@ const NOMBRE_MAX_LENGTH = 100;
 const INT4_MAX = 2147483647;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validateCreateUser(body) {
-  const { email, nombre, id_rol } = body ?? {};
-  const errors = [];
+// El indice unico distingue mayusculas: se normaliza para no duplicar el mismo email
+function normalizeEmail(email) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
 
-  // El indice unico distingue mayusculas: se normaliza para no duplicar el mismo email
-  const normalizedEmail =
-    typeof email === "string" ? email.trim().toLowerCase() : "";
-  const normalizedNombre = typeof nombre === "string" ? nombre.trim() : "";
-
+function validateEmail(normalizedEmail, errors) {
   if (
     !EMAIL_PATTERN.test(normalizedEmail) ||
     normalizedEmail.length > EMAIL_MAX_LENGTH
   ) {
     errors.push(`email debe ser valido y tener hasta ${EMAIL_MAX_LENGTH} caracteres`);
   }
+}
+
+function validateCreateUser(body) {
+  const { email, nombre, id_rol } = body ?? {};
+  const errors = [];
+
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedNombre = typeof nombre === "string" ? nombre.trim() : "";
+
+  validateEmail(normalizedEmail, errors);
 
   if (!normalizedNombre || normalizedNombre.length > NOMBRE_MAX_LENGTH) {
     errors.push(`nombre es obligatorio y admite hasta ${NOMBRE_MAX_LENGTH} caracteres`);
@@ -33,4 +40,14 @@ function validateCreateUser(body) {
   };
 }
 
-module.exports = { validateCreateUser };
+function validateResetPassword(body) {
+  const { email } = body ?? {};
+  const errors = [];
+
+  const normalizedEmail = normalizeEmail(email);
+  validateEmail(normalizedEmail, errors);
+
+  return { errors, data: { email: normalizedEmail } };
+}
+
+module.exports = { validateCreateUser, validateResetPassword };
