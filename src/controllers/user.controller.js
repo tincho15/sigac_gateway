@@ -68,4 +68,19 @@ async function resetPassword(req, res) {
   }
 }
 
-module.exports = { createUser, resetPassword };
+async function listUsers(_req, res) {
+  try {
+    const users = await userService.listUsers();
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error(
+      "User listing failed:",
+      error instanceof Error ? error.name : "Unknown error"
+    );
+    return res
+      .status(500)
+      .json({ status: "error", message: "No se pudo obtener los usuarios" });
+  }
+}
+
+module.exports = { createUser, resetPassword, listUsers };

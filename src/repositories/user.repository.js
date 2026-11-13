@@ -43,4 +43,16 @@ async function updatePasswordByEmail(email, passwordHash) {
   }
 }
 
-module.exports = { createUser, updatePasswordByEmail };
+async function findAllUsers() {
+  return prisma.usuario.findMany({
+    select: {
+      id_usuario: true,
+      nombre: true,
+      email: true,
+      activo: true,
+      rol: { select: { nombre: true } },
+    },
+  });
+}
+
+module.exports = { createUser, updatePasswordByEmail, findAllUsers };

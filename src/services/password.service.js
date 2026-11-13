@@ -29,4 +29,8 @@ async function createPassword() {
   return { password, hash };
 }
 
-module.exports = { generatePassword, hashPassword, createPassword };
+async function comparePassword(password, hash) {
+  return bcrypt.compare(password, hash);
+}
+
+module.exports = { generatePassword, hashPassword, createPassword, comparePassword };
