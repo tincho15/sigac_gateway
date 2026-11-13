@@ -20,4 +20,17 @@ function generateToken(user) {
     );
 }
 
-module.exports = { generateToken };
+function verifyToken(token) {
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+        throw new Error("JWT_SECRET no está configurado");
+    }
+
+    return jwt.verify(token, secret);
+}
+
+module.exports = {
+    generateToken,
+    verifyToken,
+};
