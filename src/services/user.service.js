@@ -13,4 +13,11 @@ async function createUser({ email, nombre, id_rol }) {
   return { ...user, password };
 }
 
-module.exports = { createUser };
+async function resetPassword({ email }) {
+  const { password, hash } = await passwordService.createPassword();
+  const user = await userRepository.updatePasswordByEmail(email, hash);
+
+  return { ...user, password };
+}
+
+module.exports = { createUser, resetPassword };
