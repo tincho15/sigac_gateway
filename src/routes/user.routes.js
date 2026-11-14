@@ -1,11 +1,33 @@
 const express = require("express");
 const userController = require("../controllers/user.controller");
 
+const { authenticate } = require("../middlewares/auth.middleware");
+const { authorizeRoles } = require("../middlewares/role.middleware");
+const { ROLES } = require("../utils/constants");
+
 const router = express.Router();
 
-// TODO: Agregar middleware de auth 
-router.get("/", userController.listUsers);
-router.post("/", userController.createUser);
-router.post("/reset-password", userController.resetPassword);
+//Crear usuario
+router.post("/",
+    authenticate, //Comentar para permitir crear usuario sin autenticarse
+    authorizeRoles(ROLES.ADMINISTRADOR), //Comentar esta linea para permitir crear usuario sin ser admin
+    //,authorizeRoles(ROLES.ADMINISTRADOR, ROLES.FUNCIONARIO) ejemplo para permitir mas de un rol al mismo endpoint
+    userController.createUser);
+
+//Listar usuarios
+router.get(
+    "/",
+    authenticate,
+    authorizeRoles(ROLES.ADMINISTRADOR),
+    userController.listUsers
+);
+
+//Resetear contraseña
+router.post(
+    "/reset-password",
+    authenticate,
+    authorizeRoles(ROLES.ADMINISTRADOR),
+    userController.resetPassword
+);
 
 module.exports = router;
