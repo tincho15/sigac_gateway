@@ -108,6 +108,7 @@ Al cambiar el schema, ejecutar `npm run db:migrate -- --name descripcion_del_cam
 ## Endpoints
 
 - `GET /health`: comprueba que el servidor responde y que Prisma puede consultar la base de datos. Devuelve `200` si esta conectada y `503` si no lo esta.
+- `GET /users`: devuelve todos los usuarios con `id_usuario`, `nombre`, `email`, `activo` y `rol` (nombre del rol). Primero los activos y despues los inactivos, cada grupo ordenado alfabeticamente por nombre (sin distinguir mayusculas ni tildes).
 - `POST /users`: crea un usuario a partir de `email`, `nombre` e `id_rol`. Devuelve `201` con los datos del usuario y la contraseña generada, `400` si los datos son invalidos o el rol no existe y `409` si el email ya esta registrado. La contraseña se guarda hasheada con bcrypt, por lo que esta respuesta es la unica vez que puede verse en claro.
 
 ## Autenticacion y control de roles
