@@ -30,4 +30,11 @@ router.post(
     userController.resetPassword
 );
 
+//Cambiar contraseña
+router.post(
+    "/change-password",
+    authenticate,
+    userController.changePassword
+);
+
 module.exports = router;

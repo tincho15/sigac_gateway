@@ -28,6 +28,7 @@ async function findById(id_usuario) {
             nombre: true,
             email: true,
             activo: true,
+            debe_cambiar_password: true,
             rol: {
                 select: {
                     id_rol: true,
