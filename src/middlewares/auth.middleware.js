@@ -1,4 +1,5 @@
 const authRepository = require("../repositories/auth.repository");
+const tokenRepository = require("../repositories/token.repository");
 const tokenService = require("../services/token.service");
 
 async function authenticate(req, res, next) {
@@ -42,9 +43,27 @@ async function authenticate(req, res, next) {
         });
     }
 
+    // 5. El token debe tener un identificador (jti) para poder revocarse
+    const { jti, exp } = payload;
+
+    if (typeof jti !== "string" || jti.length === 0) {
+        return res.status(401).json({
+            error: "Token inválido o expirado",
+        });
+    }
+
     try {
-        // 5. Buscar el usuario en la base de datos
-        const user = await authRepository.findById(id_usuario);
+        // 6. Buscar el usuario y comprobar que el token no fue revocado (logout)
+        const [user, revoked] = await Promise.all([
+            authRepository.findById(id_usuario),
+            tokenRepository.isRevoked(jti),
+        ]);
+
+        if (revoked) {
+            return res.status(401).json({
+                error: "Token inválido o expirado",
+            });
+        }
 
         if (!user || !user.activo) {
             return res.status(401).json({
@@ -52,10 +71,11 @@ async function authenticate(req, res, next) {
             });
         }
 
-        // 6. Adjuntar el usuario a la solicitud
+        // 7. Adjuntar el usuario y los datos del token a la solicitud
         req.user = user;
+        req.auth = { jti, exp };
 
-        // 7. Continuar con el siguiente middleware
+        // 8. Continuar con el siguiente middleware
         next();
 
     } catch (error) {

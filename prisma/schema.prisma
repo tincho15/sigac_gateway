@@ -64,9 +64,25 @@ model Usuario {
   transferencias         Transferencia[]
   asignacionesRecibidas  Asignacion[]          @relation("AsignacionAsignado")
   asignacionesRealizadas Asignacion[]          @relation("AsignacionAsignador")
+  tokensRevocados        TokenRevocado[]
 
   @@index([id_rol])
   @@map("usuario")
+}
+
+// JWT invalidados por logout. Cada fila solo es necesaria hasta que el token
+// vence (expira_en); despues se puede borrar sin riesgo.
+model TokenRevocado {
+  jti         String   @id @db.VarChar(36)
+  id_usuario  Int
+  expira_en   DateTime
+  revocado_en DateTime @default(now())
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@index([id_usuario])
+  @@index([expira_en])
+  @@map("token_revocado")
 }
 
 // ---------------------------------------------------------------------------
