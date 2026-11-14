@@ -110,3 +110,43 @@ Al cambiar el schema, ejecutar `npm run db:migrate -- --name descripcion_del_cam
 - `GET /health`: comprueba que el servidor responde y que Prisma puede consultar la base de datos. Devuelve `200` si esta conectada y `503` si no lo esta.
 - `GET /users`: devuelve todos los usuarios con `id_usuario`, `nombre`, `email`, `activo` y `rol` (nombre del rol). Primero los activos y despues los inactivos, cada grupo ordenado alfabeticamente por nombre (sin distinguir mayusculas ni tildes).
 - `POST /users`: crea un usuario a partir de `email`, `nombre` e `id_rol`. Devuelve `201` con los datos del usuario y la contraseña generada, `400` si los datos son invalidos o el rol no existe y `409` si el email ya esta registrado. La contraseña se guarda hasheada con bcrypt, por lo que esta respuesta es la unica vez que puede verse en claro.
+
+## Autenticacion y control de roles
+
+La autenticacion se realiza con tokens JWT y los permisos se verifican mediante los middlewares `authenticate` y `authorizeRoles`.
+
+### Inicio de sesion
+
+`POST /auth/login` es publico. Recibe las credenciales en formato JSON:
+
+```json
+{
+  "email": "usuario@example.com",
+  "password": "contraseña"
+}
+```
+
+Si las credenciales son validas y el usuario esta activo, responde `200` con los datos del usuario y un token JWT. El token no se almacena en el servidor; se debe enviar en las solicitudes protegidas. El email se normaliza a minusculas. Una solicitud invalida devuelve `400` y las credenciales incorrectas o un usuario inactivo devuelven `401`.
+
+Configura `JWT_SECRET` en el entorno del servidor con un valor secreto. `JWT_EXPIRES_IN` define la duracion del token y es opcional; si no se configura, el token vence en una hora.
+
+### Proteccion de rutas
+
+1. `authenticate` requiere el encabezado `Authorization: Bearer <token>`, verifica la firma y vencimiento del JWT y vuelve a buscar al usuario en la base de datos. Si el token no es valido, el usuario no existe o esta desactivado, responde `401`. Si la verificacion es exitosa, adjunta el usuario actual a `req.user` y continua.
+2. `authorizeRoles(...rolesPermitidos)` debe ejecutarse despues de `authenticate`. Comprueba el nombre del rol de `req.user`; si el usuario no esta autenticado responde `401` y si su rol no esta permitido responde `403`.
+
+Por ejemplo, `POST /users` requiere un token valido y el rol `Administrador`. Para permitir mas de un rol, se pueden indicar varios nombres, por ejemplo `authorizeRoles("Administrador", "Funcionario")`. Los roles iniciales precargados son `Administrador` y `Funcionario`.
+
+Ejemplo de solicitud a una ruta protegida:
+
+```http
+POST /users
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Al agregar proteccion a otra ruta, importa ambos middlewares y colocalos antes del controlador:
+
+```js
+router.post("/", authenticate, authorizeRoles("Administrador"), controller);
+```
