@@ -47,12 +47,14 @@ model Estado {
 // ---------------------------------------------------------------------------
 
 model Usuario {
-  id_usuario Int     @id @default(autoincrement())
-  id_rol     Int
-  nombre     String  @db.VarChar(100)
-  email      String  @unique @db.VarChar(150)
-  password   String  @db.VarChar(255)
-  activo     Boolean @default(true)
+  id_usuario            Int     @id @default(autoincrement())
+  id_rol                Int
+  nombre                String  @db.VarChar(100)
+  email                 String  @unique @db.VarChar(150)
+  password              String  @db.VarChar(255)
+  activo                Boolean @default(true)
+  // Obliga a cambiar la contraseña en el proximo login (p. ej. tras un reseteo)
+  debe_cambiar_password Boolean @default(false)
 
   rol                    Rol                   @relation(fields: [id_rol], references: [id_rol])
   solicitudes            Solicitud[]

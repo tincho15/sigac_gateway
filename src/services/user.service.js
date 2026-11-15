@@ -13,6 +13,13 @@ async function createUser({ email, nombre, id_rol }) {
   return { ...user, password };
 }
 
+async function resetPassword({ email }) {
+  const { password, hash } = await passwordService.createPassword();
+  const user = await userRepository.updatePasswordByEmail(email, hash);
+
+  return { ...user, password };
+}
+
 // El orden se resuelve aca y no en la base: la collation de postgres:16-alpine
 // compara por bytes, lo que ubica mayusculas antes que minusculas y deja los
 // nombres con tilde al final
@@ -37,8 +44,9 @@ async function listUsers() {
   }));
 }
 
+
 async function updateUser({ id_usuario, updates }) {
   return userRepository.updateUser(id_usuario, updates);
 }
 
-module.exports = { createUser, listUsers, updateUser };
+module.exports = { createUser, listUsers, updateUser, resetPassword };

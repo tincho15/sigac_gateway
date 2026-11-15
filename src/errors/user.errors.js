@@ -19,8 +19,10 @@ class UserNotFoundError extends Error {
   }
 }
 
+
 module.exports = {
   EmailAlreadyInUseError,
   RoleNotFoundError,
   UserNotFoundError,
 };
+

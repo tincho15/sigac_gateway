@@ -2,12 +2,14 @@ const userService = require("../services/user.service");
 const {
   validateCreateUser,
   validateUpdateUser,
+  validateResetPassword,
 } = require("../validators/user.validator");
 const {
   EmailAlreadyInUseError,
   RoleNotFoundError,
   UserNotFoundError,
 } = require("../errors/user.errors");
+const { toResetPasswordResponse } = require("../dtos/user.dto");
 
 async function createUser(req, res) {
   const { errors, data } = validateCreateUser(req.body);
@@ -38,6 +40,35 @@ async function createUser(req, res) {
   }
 }
 
+async function resetPassword(req, res) {
+  const { errors, data } = validateResetPassword(req.body);
+
+  if (errors.length > 0) {
+    return res.status(400).json({ status: "error", errors });
+  }
+
+  try {
+    const user = await userService.resetPassword(data);
+    // La respuesta incluye la contraseña en claro: no debe quedar en caches
+    return res
+      .status(200)
+      .set("Cache-Control", "no-store")
+      .json(toResetPasswordResponse(user));
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      return res.status(404).json({ status: "error", message: error.message });
+    }
+
+    console.error(
+      "Password reset failed:",
+      error instanceof Error ? error.name : "Unknown error"
+    );
+    return res
+      .status(500)
+      .json({ status: "error", message: "No se pudo resetear la contraseña" });
+  }
+}
+
 async function listUsers(_req, res) {
   try {
     const users = await userService.listUsers();
@@ -52,6 +83,7 @@ async function listUsers(_req, res) {
       .json({ status: "error", message: "No se pudo obtener los usuarios" });
   }
 }
+
 
 async function updateUser(req, res) {
   const { errors, data } = validateUpdateUser(req.params.id, req.body);
@@ -84,4 +116,5 @@ async function updateUser(req, res) {
   }
 }
 
-module.exports = { createUser, listUsers, updateUser };
+module.exports = { createUser, listUsers, updateUser, resetPassword };
+

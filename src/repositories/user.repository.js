@@ -27,6 +27,22 @@ async function createUser(user) {
   }
 }
 
+// Update directo por email: si no existe, Prisma lanza P2025 sin una consulta previa
+async function updatePasswordByEmail(email, passwordHash) {
+  try {
+    return await prisma.usuario.update({
+      where: { email },
+      data: { password: passwordHash, debe_cambiar_password: true },
+      omit: { password: true },
+    });
+  } catch (error) {
+    if (error.code === RECORD_NOT_FOUND) {
+      throw new UserNotFoundError();
+    }
+    throw error;
+  }
+}
+
 async function findAllUsers() {
   return prisma.usuario.findMany({
     select: {
@@ -66,4 +82,4 @@ async function updateUser(id_usuario, updates) {
   }
 }
 
-module.exports = { createUser, findAllUsers, updateUser };
+module.exports = { createUser, findAllUsers, updateUser, updatePasswordByEmail };
