@@ -1,8 +1,12 @@
 const userService = require("../services/user.service");
-const { validateCreateUser } = require("../validators/user.validator");
+const {
+  validateCreateUser,
+  validateUpdateUser,
+} = require("../validators/user.validator");
 const {
   EmailAlreadyInUseError,
   RoleNotFoundError,
+  UserNotFoundError,
 } = require("../errors/user.errors");
 
 async function createUser(req, res) {
@@ -49,4 +53,35 @@ async function listUsers(_req, res) {
   }
 }
 
-module.exports = { createUser, listUsers };
+async function updateUser(req, res) {
+  const { errors, data } = validateUpdateUser(req.params.id, req.body);
+
+  if (errors.length > 0) {
+    return res.status(400).json({ status: "error", errors });
+  }
+
+  try {
+    const user = await userService.updateUser(data);
+    return res.status(200).json(user);
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      return res.status(404).json({ status: "error", message: error.message });
+    }
+    if (error instanceof EmailAlreadyInUseError) {
+      return res.status(409).json({ status: "error", message: error.message });
+    }
+    if (error instanceof RoleNotFoundError) {
+      return res.status(400).json({ status: "error", message: error.message });
+    }
+
+    console.error(
+      "User update failed:",
+      error instanceof Error ? error.name : "Unknown error"
+    );
+    return res
+      .status(500)
+      .json({ status: "error", message: "No se pudo actualizar el usuario" });
+  }
+}
+
+module.exports = { createUser, listUsers, updateUser };

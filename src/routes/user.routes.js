@@ -22,4 +22,13 @@ router.get(
     userController.listUsers
 );
 
+//Update de usuario
+router.patch(
+    "/:id",
+    authenticate,
+    authorizeRoles(ROLES.ADMINISTRADOR),
+    userController.updateUser
+);
+
+
 module.exports = router;

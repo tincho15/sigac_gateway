@@ -37,4 +37,8 @@ async function listUsers() {
   }));
 }
 
-module.exports = { createUser, listUsers };
+async function updateUser({ id_usuario, updates }) {
+  return userRepository.updateUser(id_usuario, updates);
+}
+
+module.exports = { createUser, listUsers, updateUser };
