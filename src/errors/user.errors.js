@@ -14,9 +14,15 @@ class RoleNotFoundError extends Error {
 
 class UserNotFoundError extends Error {
   constructor() {
-    super("El usuario no existe");
+    super("El usuario indicado no existe");
     this.name = "UserNotFoundError";
   }
 }
 
-module.exports = { EmailAlreadyInUseError, RoleNotFoundError, UserNotFoundError };
+
+module.exports = {
+  EmailAlreadyInUseError,
+  RoleNotFoundError,
+  UserNotFoundError,
+};
+
