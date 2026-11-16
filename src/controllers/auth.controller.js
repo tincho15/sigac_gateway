@@ -44,4 +44,32 @@ async function login(req, res) {
     }
 }
 
-module.exports = { login };
+async function logout(req, res) {
+    try {
+        await authService.logout({
+            jti: req.auth.jti,
+            exp: req.auth.exp,
+            id_usuario: req.user.id_usuario,
+        });
+
+        return res
+            .status(200)
+            .set("Cache-Control", "no-store")
+            .json({
+                status: "success",
+                message: "Sesión cerrada",
+            });
+    } catch (error) {
+        console.error(
+            "Logout failed:",
+            error instanceof Error ? error.name : "Unknown error"
+        );
+
+        return res.status(500).json({
+            status: "error",
+            message: "No se pudo cerrar la sesión",
+        });
+    }
+}
+
+module.exports = { login, logout };

@@ -1,3 +1,4 @@
+const crypto = require("node:crypto");
 const jwt = require("jsonwebtoken");
 
 function generateToken(user) {
@@ -15,6 +16,8 @@ function generateToken(user) {
         secret,
         {
             subject: String(user.id_usuario),
+            // Identificador unico del token, necesario para poder revocarlo en el logout
+            jwtid: crypto.randomUUID(),
             expiresIn: process.env.JWT_EXPIRES_IN || "1h",
         }
     );

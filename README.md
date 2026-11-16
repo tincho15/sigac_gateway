@@ -131,9 +131,26 @@ Si las credenciales son validas y el usuario esta activo, responde `200` con los
 
 Configura `JWT_SECRET` en el entorno del servidor con un valor secreto. `JWT_EXPIRES_IN` define la duracion del token y es opcional; si no se configura, el token vence en una hora.
 
+Cada token incluye un identificador unico (`jti`), que se usa para poder revocarlo al cerrar sesion.
+
+### Cierre de sesion
+
+`POST /auth/logout` requiere `Authorization: Bearer <token>` y no recibe cuerpo. Revoca el token con el que se hace la solicitud y responde `200`:
+
+```json
+{
+  "status": "success",
+  "message": "Sesión cerrada"
+}
+```
+
+Solo se cierra la sesion de ese token; otras sesiones del mismo usuario siguen activas. Despues del logout, cualquier solicitud con ese token responde `401`. Sin token, o con un token invalido, vencido o ya revocado, el endpoint responde `401`.
+
+Los tokens revocados se guardan en la tabla `token_revocado` (`jti`, `id_usuario`, `expira_en`, `revocado_en`) hasta que vencen. Una vez vencido, `jwt.verify` ya rechaza el token, por lo que su fila deja de ser necesaria: cada logout borra los registros con `expira_en` anterior a la fecha actual.
+
 ### Proteccion de rutas
 
-1. `authenticate` requiere el encabezado `Authorization: Bearer <token>`, verifica la firma y vencimiento del JWT y vuelve a buscar al usuario en la base de datos. Si el token no es valido, el usuario no existe o esta desactivado, responde `401`. Si la verificacion es exitosa, adjunta el usuario actual a `req.user` y continua.
+1. `authenticate` requiere el encabezado `Authorization: Bearer <token>`, verifica la firma y vencimiento del JWT, comprueba que el token tenga `jti` y no haya sido revocado, y vuelve a buscar al usuario en la base de datos. Si el token no es valido o fue revocado, o si el usuario no existe o esta desactivado, responde `401`. Si la verificacion es exitosa, adjunta el usuario actual a `req.user`, los datos del token (`jti`, `exp`) a `req.auth` y continua.
 2. `authorizeRoles(...rolesPermitidos)` debe ejecutarse despues de `authenticate`. Comprueba el nombre del rol de `req.user`; si el usuario no esta autenticado responde `401` y si su rol no esta permitido responde `403`.
 
 Por ejemplo, `POST /users` requiere un token valido y el rol `Administrador`. Para permitir mas de un rol, se pueden indicar varios nombres, por ejemplo `authorizeRoles("Administrador", "Funcionario")`. Los roles iniciales precargados son `Administrador` y `Funcionario`.
