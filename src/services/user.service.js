@@ -82,4 +82,8 @@ async function listUsers() {
   }));
 }
 
-module.exports = { createUser, resetPassword, changePassword, listUsers };
+async function updateUser({ id_usuario, updates }) {
+  return userRepository.updateUser(id_usuario, updates);
+}
+
+module.exports = { createUser, resetPassword, changePassword, listUsers, updateUser };

@@ -22,6 +22,14 @@ router.get(
     userController.listUsers
 );
 
+//Update de usuario
+router.patch(
+    "/:id",
+    authenticate,
+    authorizeRoles(ROLES.ADMINISTRADOR),
+    userController.updateUser
+);
+
 //Resetear contraseña
 router.post(
     "/reset-password",
