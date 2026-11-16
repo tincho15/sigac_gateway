@@ -1,5 +1,9 @@
 const userRepository = require("../repositories/user.repository");
 const passwordService = require("./password.service");
+const {
+  InvalidCurrentPasswordError,
+  UserNotFoundError,
+} = require("../errors/user.errors");
 
 async function createUser({ email, nombre, id_rol }) {
   const { password, hash } = await passwordService.createPassword();
@@ -8,6 +12,7 @@ async function createUser({ email, nombre, id_rol }) {
     nombre,
     id_rol,
     password: hash,
+    debe_cambiar_password: true,
   });
 
   return { ...user, password };
@@ -18,6 +23,39 @@ async function resetPassword({ email }) {
   const user = await userRepository.updatePasswordByEmail(email, hash);
 
   return { ...user, password };
+}
+
+async function changePassword({
+  id_usuario,
+  currentPassword,
+  newPassword,
+  debe_cambiar_password,
+}) {
+  if (!debe_cambiar_password) {
+    if (!currentPassword) {
+      throw new InvalidCurrentPasswordError();
+    }
+
+    const currentPasswordHash =
+      await userRepository.findPasswordById(id_usuario);
+
+    if (!currentPasswordHash) {
+      throw new UserNotFoundError();
+    }
+
+    const isCurrentPasswordValid = await passwordService.comparePassword(
+      currentPassword,
+      currentPasswordHash
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new InvalidCurrentPasswordError();
+    }
+  }
+
+  const newPasswordHash = await passwordService.hashPassword(newPassword);
+
+  return userRepository.updatePasswordById(id_usuario, newPasswordHash);
 }
 
 // El orden se resuelve aca y no en la base: la collation de postgres:16-alpine
@@ -44,9 +82,8 @@ async function listUsers() {
   }));
 }
 
-
 async function updateUser({ id_usuario, updates }) {
   return userRepository.updateUser(id_usuario, updates);
 }
 
-module.exports = { createUser, listUsers, updateUser, resetPassword };
+module.exports = { createUser, resetPassword, changePassword, listUsers, updateUser };

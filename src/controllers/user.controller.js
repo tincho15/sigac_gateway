@@ -3,11 +3,13 @@ const {
   validateCreateUser,
   validateUpdateUser,
   validateResetPassword,
+  validateChangePassword,
 } = require("../validators/user.validator");
 const {
   EmailAlreadyInUseError,
   RoleNotFoundError,
   UserNotFoundError,
+  InvalidCurrentPasswordError,
 } = require("../errors/user.errors");
 const { toResetPasswordResponse } = require("../dtos/user.dto");
 
@@ -69,6 +71,51 @@ async function resetPassword(req, res) {
   }
 }
 
+async function changePassword(req, res) {
+  const { errors, data } = validateChangePassword(req.body);
+
+  if (errors.length > 0) {
+    return res.status(400).json({ status: "error", errors });
+  }
+
+  try {
+    await userService.changePassword({
+      ...data,
+      id_usuario: req.user.id_usuario,
+      debe_cambiar_password: req.user.debe_cambiar_password,
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "La contraseña se cambió correctamente",
+    });
+  } catch (error) {
+    if (error instanceof InvalidCurrentPasswordError) {
+      return res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    }
+
+    if (error instanceof UserNotFoundError) {
+      return res.status(404).json({
+        status: "error",
+        message: error.message,
+      });
+    }
+
+    console.error(
+      "Password change failed:",
+      error instanceof Error ? error.name : "Unknown error"
+    );
+
+    return res.status(500).json({
+      status: "error",
+      message: "No se pudo cambiar la contraseña",
+    });
+  }
+}
+
 async function listUsers(_req, res) {
   try {
     const users = await userService.listUsers();
@@ -83,7 +130,6 @@ async function listUsers(_req, res) {
       .json({ status: "error", message: "No se pudo obtener los usuarios" });
   }
 }
-
 
 async function updateUser(req, res) {
   const { errors, data } = validateUpdateUser(req.params.id, req.body);
@@ -116,5 +162,5 @@ async function updateUser(req, res) {
   }
 }
 
-module.exports = { createUser, listUsers, updateUser, resetPassword };
+module.exports = { createUser, listUsers, updateUser, resetPassword, changePassword };
 

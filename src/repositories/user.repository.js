@@ -43,6 +43,33 @@ async function updatePasswordByEmail(email, passwordHash) {
   }
 }
 
+async function findPasswordById(id_usuario) {
+  const user = await prisma.usuario.findUnique({
+    where: { id_usuario },
+    select: { password: true },
+  });
+
+  return user?.password ?? null;
+}
+
+async function updatePasswordById(id_usuario, passwordHash) {
+  try {
+    return await prisma.usuario.update({
+      where: { id_usuario },
+      data: {
+        password: passwordHash,
+        debe_cambiar_password: false,
+      },
+      omit: { password: true },
+    });
+  } catch (error) {
+    if (error.code === RECORD_NOT_FOUND) {
+      throw new UserNotFoundError();
+    }
+    throw error;
+  }
+}
+
 async function findAllUsers() {
   return prisma.usuario.findMany({
     select: {
@@ -82,4 +109,11 @@ async function updateUser(id_usuario, updates) {
   }
 }
 
-module.exports = { createUser, findAllUsers, updateUser, updatePasswordByEmail };
+module.exports = {
+  createUser,
+  updatePasswordByEmail,
+  findPasswordById,
+  updatePasswordById,
+  findAllUsers,
+  updateUser,
+};

@@ -19,10 +19,11 @@ class UserNotFoundError extends Error {
   }
 }
 
+class InvalidCurrentPasswordError extends Error {
+  constructor() {
+    super("La contraseña actual es incorrecta");
+    this.name = "InvalidCurrentPasswordError";
+  }
+}
 
-module.exports = {
-  EmailAlreadyInUseError,
-  RoleNotFoundError,
-  UserNotFoundError,
-};
-
+module.exports = { EmailAlreadyInUseError, RoleNotFoundError, UserNotFoundError, InvalidCurrentPasswordError };
