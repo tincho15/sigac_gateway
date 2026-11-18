@@ -72,4 +72,20 @@ async function logout(req, res) {
     }
 }
 
-module.exports = { login, logout };
+function getMe(req, res) {
+    return res
+        .status(200)
+        .set("Cache-Control", "no-store")
+        .json({
+            status: "success",
+            user: {
+                id_usuario: req.user.id_usuario,
+                nombre: req.user.nombre,
+                email: req.user.email,
+                debe_cambiar_password: req.user.debe_cambiar_password,
+                rol: req.user.rol,
+            },
+        });
+}
+
+module.exports = { login, logout, getMe };
