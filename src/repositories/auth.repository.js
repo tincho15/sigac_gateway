@@ -11,6 +11,7 @@ async function findByEmail(email) {
             password: true,
             activo: true,
             debe_cambiar_password: true,
+            totp_habilitado: true,
             rol: {
                 select: {
                     id_rol: true,
@@ -30,6 +31,7 @@ async function findById(id_usuario) {
             email: true,
             activo: true,
             debe_cambiar_password: true,
+            totp_habilitado: true,
             rol: {
                 select: {
                     id_rol: true,

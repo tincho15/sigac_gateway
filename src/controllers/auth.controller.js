@@ -2,6 +2,7 @@
 const authService = require("../services/auth.service");
 const { validateLogin } = require("../validators/auth.validator");
 const { InvalidCredentialsError } = require("../services/auth.service");
+const { toAuthenticatedUser } = require("../dtos/auth.dto");
 
 async function login(req, res) {
     const { errors, data } = validateLogin(req.body);
@@ -15,6 +16,16 @@ async function login(req, res) {
 
     try {
         const result = await authService.login(data);
+
+        if (result.twoFactorRequired) {
+            return res
+                .status(200)
+                .set("Cache-Control", "no-store")
+                .json({
+                    status: "2fa_required",
+                    tempToken: result.tempToken,
+                });
+        }
 
         return res
             .status(200)
@@ -78,13 +89,8 @@ function getMe(req, res) {
         .set("Cache-Control", "no-store")
         .json({
             status: "success",
-            user: {
-                id_usuario: req.user.id_usuario,
-                nombre: req.user.nombre,
-                email: req.user.email,
-                debe_cambiar_password: req.user.debe_cambiar_password,
-                rol: req.user.rol,
-            },
+            // Misma forma que el usuario del login (incluye debe_activar_2fa)
+            user: toAuthenticatedUser(req.user),
         });
 }
 
