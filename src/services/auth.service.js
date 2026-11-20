@@ -3,13 +3,8 @@ const authRepository = require("../repositories/auth.repository");
 const passwordService = require("./password.service");
 const tokenService = require("./token.service");
 const tokenRepository = require("../repositories/token.repository");
-
-class InvalidCredentialsError extends Error {
-    constructor() {
-        super("Credenciales incorrectas");
-        this.name = "InvalidCredentialsError";
-    }
-}
+const { toAuthenticatedUser } = require("../dtos/auth.dto");
+const { InvalidCredentialsError } = require("../errors/auth.errors");
 
 async function login({ email, password }) {
     const user = await authRepository.findByEmail(email);
@@ -27,13 +22,19 @@ async function login({ email, password }) {
         throw new InvalidCredentialsError();
     }
 
-    const { password: _, activo, ...authenticatedUser } = user;
-
-    const token = tokenService.generateToken(authenticatedUser);
+    // Con 2FA activo la contraseña no alcanza: se entrega un token intermedio
+    // que solo sirve para enviar el codigo a POST /auth/2fa/login
+    if (user.totp_habilitado) {
+        return {
+            twoFactorRequired: true,
+            tempToken: tokenService.generateTwoFactorToken(user.id_usuario),
+        };
+    }
 
     return {
-        user: authenticatedUser,
-        token,
+        twoFactorRequired: false,
+        user: toAuthenticatedUser(user),
+        token: tokenService.generateToken(user),
     };
 }
 

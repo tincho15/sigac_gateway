@@ -55,8 +55,14 @@ model Usuario {
   activo                Boolean @default(true)
   // Obliga a cambiar la contraseña en el proximo login (p. ej. tras un reseteo)
   debe_cambiar_password Boolean @default(false)
+  // Segundo factor (TOTP / Google Authenticator)
+  // El secreto se guarda cifrado con AES-256-GCM (ver src/services/crypto.service.js)
+  totp_habilitado       Boolean @default(false)
+  totp_secreto          String? @db.VarChar(255)
+  // Ultimo paso de tiempo TOTP aceptado: impide reutilizar un mismo codigo
+  totp_ultimo_paso      Int?
 
-  rol                    Rol                   @relation(fields: [id_rol], references: [id_rol])
+  rol                   Rol                   @relation(fields: [id_rol], references: [id_rol])
   solicitudes            Solicitud[]
   documentos             Documento[]
   historialesSolicitud   HistorialSolicitud[]

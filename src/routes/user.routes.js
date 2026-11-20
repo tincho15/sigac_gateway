@@ -1,7 +1,10 @@
 const express = require("express");
 const userController = require("../controllers/user.controller");
 
-const { authenticate } = require("../middlewares/auth.middleware");
+const {
+    authenticate,
+    authenticateAllowingTwoFactorSetup,
+} = require("../middlewares/auth.middleware");
 const { authorizeRoles } = require("../middlewares/role.middleware");
 const { ROLES } = require("../utils/constants");
 
@@ -38,11 +41,19 @@ router.post(
     userController.resetPassword
 );
 
-//Cambiar contraseña
+//Cambiar contraseña (permitido antes de activar el 2FA: el primer login exige ambas cosas)
 router.post(
     "/change-password",
-    authenticate,
+    authenticateAllowingTwoFactorSetup,
     userController.changePassword
+);
+
+//Resetear 2FA (el usuario perdio el celular o la app autenticadora)
+router.post(
+    "/reset-2fa",
+    authenticate,
+    authorizeRoles(ROLES.ADMINISTRADOR),
+    userController.resetTwoFactor
 );
 
 module.exports = router;
