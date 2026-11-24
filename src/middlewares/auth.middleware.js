@@ -1,8 +1,18 @@
 const authRepository = require("../repositories/auth.repository");
 const tokenRepository = require("../repositories/token.repository");
 const tokenService = require("../services/token.service");
+const { mustEnableTwoFactor } = require("../config/two-factor");
 
-async function authenticate(req, res, next) {
+const TWO_FACTOR_SETUP_REQUIRED = "TWO_FACTOR_SETUP_REQUIRED";
+
+// allowPendingTwoFactor: permite el acceso a usuarios que todavia no activaron el 2FA
+// obligatorio. Solo se usa en las rutas necesarias para activarlo (y /me, logout,
+// cambio de contraseña); el resto responde 403 hasta que lo activen.
+function createAuthenticate({ allowPendingTwoFactor = false } = {}) {
+    return (req, res, next) => authenticateRequest(req, res, next, allowPendingTwoFactor);
+}
+
+async function authenticateRequest(req, res, next, allowPendingTwoFactor) {
     // 1. Obtener el encabezado Authorization
     const authHeader = req.headers.authorization;
 
@@ -71,11 +81,19 @@ async function authenticate(req, res, next) {
             });
         }
 
-        // 7. Adjuntar el usuario y los datos del token a la solicitud
+        // 7. Con 2FA obligatoria, sin activarlo solo se accede a las rutas de activacion
+        if (!allowPendingTwoFactor && mustEnableTwoFactor(user)) {
+            return res.status(403).json({
+                error: "Tenés que activar la verificación en dos pasos para continuar",
+                code: TWO_FACTOR_SETUP_REQUIRED,
+            });
+        }
+
+        // 8. Adjuntar el usuario y los datos del token a la solicitud
         req.user = user;
         req.auth = { jti, exp };
 
-        // 8. Continuar con el siguiente middleware
+        // 9. Continuar con el siguiente middleware
         next();
 
     } catch (error) {
@@ -83,4 +101,11 @@ async function authenticate(req, res, next) {
     }
 }
 
-module.exports = { authenticate };
+const authenticate = createAuthenticate();
+const authenticateAllowingTwoFactorSetup = createAuthenticate({ allowPendingTwoFactor: true });
+
+module.exports = {
+    authenticate,
+    authenticateAllowingTwoFactorSetup,
+    TWO_FACTOR_SETUP_REQUIRED,
+};

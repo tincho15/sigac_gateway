@@ -1,4 +1,5 @@
 const userService = require("../services/user.service");
+const twoFactorService = require("../services/two-factor.service");
 const {
   validateCreateUser,
   validateUpdateUser,
@@ -162,5 +163,37 @@ async function updateUser(req, res) {
   }
 }
 
-module.exports = { createUser, listUsers, updateUser, resetPassword, changePassword };
+// Desactiva el 2FA de un usuario que perdio acceso a su app autenticadora
+async function resetTwoFactor(req, res) {
+  const { errors, data } = validateResetPassword(req.body);
 
+  if (errors.length > 0) {
+    return res.status(400).json({ status: "error", errors });
+  }
+
+  try {
+    const user = await twoFactorService.resetByEmail(data.email);
+    return res.status(200).json({ email: user.email, totp_habilitado: false });
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      return res.status(404).json({ status: "error", message: error.message });
+    }
+
+    console.error(
+      "Two-factor reset failed:",
+      error instanceof Error ? error.name : "Unknown error"
+    );
+    return res
+      .status(500)
+      .json({ status: "error", message: "No se pudo resetear el 2FA" });
+  }
+}
+
+module.exports = {
+  createUser,
+  listUsers,
+  updateUser,
+  resetPassword,
+  changePassword,
+  resetTwoFactor,
+};
