@@ -10,7 +10,7 @@ const router = express.Router();
 router.post(
     "/",
     authenticate,
-    authorizeRoles(ROLES.ADMINISTRADOR, ROLES.FUNCIONARIO),
+    authorizeRoles(ROLES.ADMINISTRADOR),
     solicitudController.createSolicitud
 );
 

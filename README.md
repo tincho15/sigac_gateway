@@ -352,7 +352,7 @@ curl -s -X POST http://localhost:3000/auth/2fa/login -H "Content-Type: applicati
 
 ## Registro de solicitudes
 
-`POST /solicitudes` registra una solicitud con sus expedientes en una unica transaccion: si algo falla no queda nada guardado (ni la solicitud ni expedientes nuevos). Requiere autenticacion y rol `Administrador` o `Funcionario`.
+`POST /solicitudes` registra una solicitud con sus expedientes en una unica transaccion: si algo falla no queda nada guardado (ni la solicitud ni expedientes nuevos). Requiere autenticacion y rol `Administrador`.
 
 ```json
 {
