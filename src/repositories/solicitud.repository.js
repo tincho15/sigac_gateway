@@ -20,18 +20,25 @@ const LIST_SELECT = {
 
 // Sin id_asignado devuelve todas las solicitudes. Con id_asignado, solo las que
 // tienen una asignacion vigente a ese usuario.
-async function findAll({ id_asignado } = {}) {
-  const where =
-    id_asignado === undefined
-      ? {}
-      : { asignaciones: { some: { id_asignado, fecha_fin: null } } };
+async function findAll({ id_asignado, page, limit } = {}) {
+  const where = id_asignado === undefined
+    ? {}
+    : { asignaciones: { some: { id_asignado, fecha_fin: null } } };
 
-  return prisma.solicitud.findMany({
-    where,
-    select: LIST_SELECT,
-    // id_solicitud desempata para que el orden sea estable entre consultas
-    orderBy: [{ fecha: "desc" }, { id_solicitud: "desc" }],
-  });
+  const skip = (page - 1) * limit;
+
+  const [solicitudes, total] = await Promise.all([
+    prisma.solicitud.findMany({
+      where,
+      select: LIST_SELECT,
+      orderBy: [{ fecha: "desc" }, { id_solicitud: "desc" }],
+      skip,
+      take: limit,
+    }),
+    prisma.solicitud.count({ where }),
+  ]);
+
+  return { solicitudes, total };
 }
 
 module.exports = { findAll };
