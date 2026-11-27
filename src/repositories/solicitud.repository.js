@@ -1,10 +1,51 @@
 const prisma = require("../config/prisma");
 const { ExpedienteInconsistenteError } = require("../errors/solicitud.errors");
 
+// Campos que se exponen en el listado. La asignación vigente es la que no tiene fecha_fin.
+const LIST_SELECT = {
+  id_solicitud: true,
+  fecha: true,
+  origen: true,
+  tipo: { select: { id_tipo: true, nombre: true } },
+  estado: { select: { id_estado: true, nombre: true } },
+  asignaciones: {
+    where: { fecha_fin: null },
+    orderBy: { fecha_asignacion: "desc" },
+    take: 1,
+    select: {
+      asignado: { select: { id_usuario: true, nombre: true } },
+    },
+  },
+  _count: { select: { solicitudesExpedientes: true } },
+};
+
+// Sin id_asignado devuelve todas las solicitudes. Con id_asignado, solo las que
+// tienen una asignación vigente a ese usuario.
+async function findAll({ id_asignado, page, limit } = {}) {
+  const where = id_asignado === undefined
+    ? {}
+    : { asignaciones: { some: { id_asignado, fecha_fin: null } } };
+
+  const skip = (page - 1) * limit;
+
+  const [solicitudes, total] = await Promise.all([
+    prisma.solicitud.findMany({
+      where,
+      select: LIST_SELECT,
+      orderBy: [{ fecha: "desc" }, { id_solicitud: "desc" }],
+      skip,
+      take: limit,
+    }),
+    prisma.solicitud.count({ where }),
+  ]);
+
+  return { solicitudes, total };
+}
+
 const UNIQUE_CONSTRAINT_VIOLATION = "P2002";
 
 // Todas las funciones (salvo runInTransaction) reciben el cliente de la
-// transaccion en curso (tx) para que la solicitud se registre completa o no se registre
+// transacción en curso (tx) para que la solicitud se registre completa o no se registre.
 
 const solicitudInclude = {
   tipo: { select: { id_tipo: true, nombre: true } },
@@ -51,17 +92,17 @@ async function createExpediente(tx, datos) {
   try {
     return await tx.expediente.create({ data: datos });
   } catch (error) {
-    // Otra operacion registro el mismo IUE entre la consulta y la insercion
+    // Otra operación registró el mismo IUE entre la consulta y la inserción.
     if (error.code === UNIQUE_CONSTRAINT_VIOLATION) {
       throw new ExpedienteInconsistenteError(
-        `El expediente con IUE ${datos.iue} se registro en simultaneo por otra operacion; reintente`
+        `El expediente con IUE ${datos.iue} se registró en simultáneo por otra operación; reintente`
       );
     }
     throw error;
   }
 }
 
-// Crea la solicitud junto con su vinculo a cada expediente (solicitud_expediente)
+// Crea la solicitud junto con su vínculo a cada expediente (solicitud_expediente).
 async function createSolicitud(tx, { expedientes, id_estado, ...solicitud }) {
   return tx.solicitud.create({
     data: {
@@ -80,6 +121,7 @@ async function createSolicitud(tx, { expedientes, id_estado, ...solicitud }) {
 }
 
 module.exports = {
+  findAll,
   runInTransaction,
   findTipoById,
   findEstadoByNombre,

@@ -7,12 +7,20 @@ const { ROLES } = require("../utils/constants");
 
 const router = express.Router();
 
-//Registrar una solicitud con sus expedientes (formulario)
+// Listar solicitudes: el administrador ve todas, el funcionario solo las asignadas
+router.get(
+  "/",
+  authenticate,
+  authorizeRoles(ROLES.ADMINISTRADOR, ROLES.FUNCIONARIO),
+  solicitudController.listSolicitudes
+);
+
+// Registrar una solicitud con sus expedientes (formulario)
 router.post(
-    "/",
-    authenticate,
-    authorizeRoles(ROLES.ADMINISTRADOR),
-    solicitudController.createSolicitud
+  "/",
+  authenticate,
+  authorizeRoles(ROLES.ADMINISTRADOR),
+  solicitudController.createSolicitud
 );
 
 // Asignar o reasignar una solicitud a un funcionario
