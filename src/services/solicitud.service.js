@@ -1,4 +1,3 @@
-
 const solicitudRepository = require("../repositories/solicitud.repository");
 const { toSolicitudListItem } = require("../dtos/solicitud.dto");
 const { ROLES, ESTADOS } = require("../utils/constants");
@@ -8,6 +7,8 @@ const {
   ExpedienteNotFoundError,
   ExpedienteInconsistenteError,
   EstadoNotFoundError,
+  SolicitudNotFoundError,
+  SolicitudAccessDeniedError,
 } = require("../errors/solicitud.errors");
 
 // El administrador ve todas las solicitudes. Cualquier otro rol ve unicamente
@@ -160,4 +161,29 @@ async function createSolicitud(data, id_usuario) {
   });
 }
 
-module.exports = { listSolicitudes, createSolicitud };
+// Un Administrador ve cualquier solicitud; el resto solo las que tiene asignadas
+// actualmente (asignacion sin fecha_fin)
+function canViewSolicitud(user, solicitud) {
+  if (user.rol.nombre === ROLES.ADMINISTRADOR) {
+    return true;
+  }
+  return solicitud.asignaciones.some(
+    (asignacion) => asignacion.asignado.id_usuario === user.id_usuario
+  );
+}
+
+async function getSolicitudDetalle({ id_solicitud, user }) {
+  const solicitud = await solicitudRepository.findDetalleById(id_solicitud);
+
+  if (!solicitud) {
+    throw new SolicitudNotFoundError();
+  }
+
+  if (!canViewSolicitud(user, solicitud)) {
+    throw new SolicitudAccessDeniedError();
+  }
+
+  return solicitud;
+}
+
+module.exports = { listSolicitudes, createSolicitud, getSolicitudDetalle };

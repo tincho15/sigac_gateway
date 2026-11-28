@@ -22,4 +22,14 @@ router.post(
   solicitudController.createSolicitud
 );
 
+// Detalle de una solicitud
+// Pueden acceder los dos roles; el service restringe a los no administradores
+// a las solicitudes que tienen asignadas
+router.get(
+  "/:id",
+  authenticate,
+  authorizeRoles(ROLES.ADMINISTRADOR, ROLES.FUNCIONARIO),
+  solicitudController.getSolicitudDetalle
+);
+
 module.exports = router;
