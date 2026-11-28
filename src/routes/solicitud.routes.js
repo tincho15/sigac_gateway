@@ -6,14 +6,30 @@ const { ROLES } = require("../utils/constants");
 
 const router = express.Router();
 
-//Detalle de una solicitud
-//Pueden acceder los dos roles; el service restringe a los no administradores
-//a las solicitudes que tienen asignadas
+// Listar solicitudes: el administrador ve todas, el funcionario solo las asignadas
 router.get(
-    "/:id",
-    authenticate,
-    authorizeRoles(ROLES.ADMINISTRADOR, ROLES.FUNCIONARIO),
-    solicitudController.getSolicitudDetalle
+  "/",
+  authenticate,
+  authorizeRoles(ROLES.ADMINISTRADOR, ROLES.FUNCIONARIO),
+  solicitudController.listSolicitudes
+);
+
+// Registrar una solicitud con sus expedientes (formulario)
+router.post(
+  "/",
+  authenticate,
+  authorizeRoles(ROLES.ADMINISTRADOR),
+  solicitudController.createSolicitud
+);
+
+// Detalle de una solicitud
+// Pueden acceder los dos roles; el service restringe a los no administradores
+// a las solicitudes que tienen asignadas
+router.get(
+  "/:id",
+  authenticate,
+  authorizeRoles(ROLES.ADMINISTRADOR, ROLES.FUNCIONARIO),
+  solicitudController.getSolicitudDetalle
 );
 
 module.exports = router;

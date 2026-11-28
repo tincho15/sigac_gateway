@@ -111,6 +111,7 @@ Al cambiar el schema, ejecutar `npm run db:migrate -- --name descripcion_del_cam
 - `GET /users`: devuelve todos los usuarios con `id_usuario`, `nombre`, `email`, `activo` y `rol` (nombre del rol). Primero los activos y despues los inactivos, cada grupo ordenado alfabeticamente por nombre (sin distinguir mayusculas ni tildes).
 - `POST /users`: crea un usuario a partir de `email`, `nombre` e `id_rol`. Devuelve `201` con los datos del usuario y la contraseña generada, `400` si los datos son invalidos o el rol no existe y `409` si el email ya esta registrado. La contraseña se guarda hasheada con bcrypt, por lo que esta respuesta es la unica vez que puede verse en claro.
 - `PATCH /users/:id`: actualiza parcialmente `email`, `nombre`, `id_rol` o `activo`. Debe enviarse al menos un campo; los campos provistos se validan y el email se normaliza a minusculas. Devuelve `200` con los datos actualizados, `400` si la solicitud es invalida o el rol no existe, `404` si el usuario no existe y `409` si el email ya esta registrado. Requiere autenticacion y rol `Administrador`.
+- `POST /solicitudes`: registra una solicitud y sus expedientes desde el formulario. Ver [Registro de solicitudes](#registro-de-solicitudes).
 - `GET /solicitudes/:id`: devuelve el detalle de una solicitud: datos generales, `tipo`, `estado`, `usuario`, `email` de origen, la `asignacion` vigente (asignado y asignador), los `expedientes` vinculados (con juzgado, ubicacion y estado), los `documentos` y el `historial` (del mas reciente al mas antiguo). Un `Administrador` puede ver cualquier solicitud; cualquier otro usuario solo las que tiene asignadas actualmente (una `asignacion` sin `fecha_fin` con su `id_asignado`). Devuelve `200` con el detalle, `400` si el id no es un entero positivo, `403` si el usuario no tiene permiso y `404` si la solicitud no existe. Requiere autenticacion.
 
 ## Autenticacion y control de roles
@@ -349,3 +350,39 @@ curl -s -X POST http://localhost:3000/auth/2fa/login -H "Content-Type: applicati
 
 - El contador de intentos fallidos del paso intermedio vive en memoria: funciona con una sola instancia del backend. Si se escalan varias replicas, hay que moverlo a Redis o a la base.
 - Mientras el 2FA no esta activo, el token del primer login sirve para activarlo con solo la contraseña. Si alguien conoce la contraseña de un usuario que todavia no lo activo, podria registrar su propio celular; por eso conviene que cada usuario lo active apenas recibe su cuenta.
+
+## Registro de solicitudes
+
+`POST /solicitudes` registra una solicitud con sus expedientes en una unica transaccion: si algo falla no queda nada guardado (ni la solicitud ni expedientes nuevos). Requiere autenticacion y rol `Administrador`.
+
+```json
+{
+  "id_tipo": 2,
+  "origen": "Juzgado 3",
+  "observaciones": "Texto libre",
+  "expedientes": [
+    { "id_expediente": 15, "observaciones": "Expediente ya registrado" },
+    { "iue": "2-12345/2024", "numero": "123", "ficha": "F-9", "nro_archivo": "A-77", "id_juzgado": 3 }
+  ]
+}
+```
+
+| Campo            | Reglas                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `id_tipo`        | Obligatorio. Entero positivo de un `tipo_solicitud` existente                            |
+| `origen`         | Obligatorio. Hasta 50 caracteres: quien pide la solicitud (p. ej. `Juzgado 3`)           |
+| `observaciones`  | Opcional. Hasta 2000 caracteres                                                          |
+| `expedientes`    | Obligatorio. Entre 1 y 100 expedientes, sin repetir                                      |
+
+Cada expediente se indica de una de dos formas:
+
+- **Ya registrado**: `{ "id_expediente", "observaciones"? }`. El expediente debe existir.
+- **Por sus datos**: `id_juzgado` obligatorio (debe existir) y al menos uno de `iue`, `numero`, `ficha` o `nro_archivo` (hasta 50 caracteres cada uno). El `iue` debe tener el formato `sede-numero/anio` y se guarda normalizado (`0002-012345/2024` → `2-12345/2024`). Si ya existe un expediente con ese IUE se reutiliza, siempre que el juzgado coincida y que `numero`, `ficha` y `nro_archivo` no contradigan los valores guardados; si no existe, se crea.
+
+`observaciones` dentro de cada expediente se guarda en `solicitud_expediente`. `id_usuario` no se acepta en el cuerpo: se toma del usuario autenticado. Una solicitud sin `id_usuario` es una creada automaticamente por el sistema; las de este endpoint siempre tienen usuario.
+
+La solicitud y cada expediente quedan en estado `Pendiente` y sin asignaciones. Respuestas:
+
+- `201`: la solicitud creada, con `id_usuario` del usuario autenticado, `tipo`, `estado`, `pendiente_asignacion: true` y la lista de `expedientes`.
+- `400`: datos invalidos (`errors` con todos los problemas encontrados) o un tipo, juzgado o expediente inexistente (`message`).
+- `409`: un expediente contradice los datos de uno registrado, o el mismo expediente aparece por id y por IUE.
